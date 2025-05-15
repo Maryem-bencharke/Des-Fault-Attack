@@ -108,6 +108,7 @@ public class DESAttackJava {
             0x12E418647676BD56L, 0x52E5386D32B2B442L, 0x1264087C7E32F557L, 0x50E418F93733B142L
     };
 
+
     // --- MÉTHODES UTILITAIRES ---
     public static void hexToBinary(int[] tabResult, long hexa, int nbrHexaDigits) {
         long tmp = hexa;
