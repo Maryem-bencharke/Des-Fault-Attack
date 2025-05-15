@@ -1,6 +1,5 @@
 import java.util.Arrays;
 
-// Helper classes to replace C structs
 class Message {
     long chiffrerHexa;
     int[] chiffrerBinaire = new int[64];
@@ -20,7 +19,7 @@ class Key {
     int[] key8bit = new int[8];
 }
 
-class DesState { // Renamed from DES_t to avoid potential conflicts and follow Java conventions
+class DesState {
     int[] claireBinaire = new int[64];
     int[] key64Bit = new int[64];
     int[] claireBinaireIp = new int[64];
@@ -28,14 +27,14 @@ class DesState { // Renamed from DES_t to avoid potential conflicts and follow J
     int[] left32Bit = new int[32];
     int[] right32BitPlus1 = new int[32];
     int[] left32BitPlus1 = new int[32];
-    // int[] right48Bit = new int[48]; // Not directly used in struct in C
+    // int[] right48Bit = new int[48];
     int[][] subKey = new int[16][48];
     int[] chiffrerBinaire = new int[64];
 }
 
 public class DESAttackJava {
 
-    // --- DES TABLES and CONSTANTS (from C code) ---
+    // --- DES TABLES and CONSTANTS ---
     private static final int[] IP = {
             58, 50, 42, 34, 26, 18, 10, 2, 60, 52, 44, 36, 28, 20, 12, 4,
             62, 54, 46, 38, 30, 22, 14, 6, 64, 56, 48, 40, 32, 24, 16, 8,
@@ -94,7 +93,6 @@ public class DESAttackJava {
             36, 38, 45, 33, 26, 42, 0, 30, 40
     };
 
-    // VALEURS UTILISATEUR (avec suffixe L pour long)
     private static final long MESSAGE_CLAIRE = 0xAE2AD5A74FF82634L;
     private static final long CHIFFRER_JUSTE = 0x52E4186D3632B556L;
     private static final long[] CHIFFRER_FAUX = {
@@ -109,7 +107,6 @@ public class DESAttackJava {
     };
 
 
-    // --- MÉTHODES UTILITAIRES ---
     public static void hexToBinary(int[] tabResult, long hexa, int nbrHexaDigits) {
         long tmp = hexa;
         int bitIndex = nbrHexaDigits * 4 - 1;
@@ -130,9 +127,6 @@ public class DESAttackJava {
             temp = tabResult[i+1]; tabResult[i+1] = tabResult[i+2]; tabResult[i+2] = temp;
         }
     }
-    // Correction: C code logic: for each hex digit, it takes LSB first (entier % 2), puts it at 'compteur', decrements compteur.
-    // This means for hex 0xA (1010), it places 0, then 1, then 0, then 1 if filling from right.
-    // My initial java hexToBinary above was slightly off from direct C logic. Here is closer:
     public static void hexToBinaryPrecise(int[] tabResult, long hexa, int nbrHexaDigits) {
         long tempHex = hexa;
         int compteur = nbrHexaDigits * 4 - 1;
@@ -156,10 +150,8 @@ public class DESAttackJava {
         }
     }
 
-    public static int arrayToInt(int[] tab, int nbrBit) { // C's TabtoInt
+    public static int arrayToInt(int[] tab, int nbrBit) {
         int nombre = 0;
-        // C code: if(tab[j] != 0){ nombre += puissance(2,i); } i++; j--;
-        // This means tab[nbrBit-1] is LSB (2^0), tab[0] is MSB
         for (int i = 0; i < nbrBit; i++) {
             if (tab[i] != 0) {
                 nombre |= (1 << (nbrBit - 1 - i));
@@ -168,9 +160,8 @@ public class DESAttackJava {
         return nombre;
     }
 
-    public static long arrayToLong(int[] tab, int nbrBit) { // C's TabtoLong
+    public static long arrayToLong(int[] tab, int nbrBit) {
         long nombre = 0;
-        // Original C loop structure for TabtoLong implies tab[nbrBit-1] is LSB for 2^0 place.
         int k = 0;
         for (int j = nbrBit - 1; j >= 0; j--) {
             if (tab[j] != 0) {
@@ -183,15 +174,13 @@ public class DESAttackJava {
 
 
     public static void permutation(int[] resultat, int[] aPermuter, final int[] tablePermutation, int nbrBit) {
-        int[] source = Arrays.copyOf(aPermuter, aPermuter.length); // Work on a copy if resultat and aPermuter can be same
+        int[] source = Arrays.copyOf(aPermuter, aPermuter.length);
 
         for (int i = 0; i < nbrBit; i++) {
-            if (tablePermutation[i] != 0) { // DES tables are 1-indexed
+            if (tablePermutation[i] != 0) {
                 resultat[i] = source[tablePermutation[i] - 1];
             } else {
-                // Handle specific cases for PC1_MOIN_1 and PC2_MOIN_1 if '0' means 'leave as is' or 'set to 0'
-                // Current C code effectively implies 'leave as is' (bit already 0 due to initTab)
-                // or set to 0. Java default for int[] is 0, so this is fine if resultat was new/cleared.
+
             }
         }
     }
@@ -207,7 +196,7 @@ public class DESAttackJava {
         }
     }
 
-    public static int findFaultyBit(int[] tabJuste, int[] tabFaux) { // C's bitFauter
+    public static int findFaultyBit(int[] tabJuste, int[] tabFaux) {
         int[] tabxor = new int[32];
         xorArrays(tabxor, tabJuste, tabFaux, 32);
         for (int j = 0; j < 32; j++) {
@@ -218,14 +207,14 @@ public class DESAttackJava {
         return -1;
     }
 
-    public static void sboxFunction(int[] resultat4bit, int[] entrer6bit, int numSbox) { // C's Sboxfonc
+    public static void sboxFunction(int[] resultat4bit, int[] entrer6bit, int numSbox) {
         int row = entrer6bit[0] * 2 + entrer6bit[5];
         int column = entrer6bit[1] * 8 + entrer6bit[2] * 4 + entrer6bit[3] * 2 + entrer6bit[4];
         int valSbox = SBOX[numSbox][row][column];
         decimalToBinary(resultat4bit, valSbox, 4);
     }
 
-    public static void getR16L16(long hexa, Message m) { // C's obtenirR16L16
+    public static void getR16L16(long hexa, Message m) {
         m.chiffrerHexa = hexa;
         hexToBinaryPrecise(m.chiffrerBinaire, hexa, 16);
         permutation(m.chiffrerBinairePermuter, m.chiffrerBinaire, IP, 64);
@@ -237,18 +226,17 @@ public class DESAttackJava {
             m.sbox6Bits[i] = m.rightChiffrerExp[6 * positionSBox + i];
         }
     }
-    // Arrays.equals() can be used instead of manual `egale`
 
     public static void initArray(int[] tab, int val, int nbrBit) {
-        Arrays.fill(tab, 0, nbrBit, val); // Fill only up to nbrBit
+        Arrays.fill(tab, 0, nbrBit, val);
     }
-    public static void initArray(int[] tab, int val) { // Overload to fill whole array
+    public static void initArray(int[] tab, int val) {
         Arrays.fill(tab, val);
     }
 
 
     public static void leftShift(int[] resultat, int[] tabToShift, int numShifts, int numBits) {
-        int[] temp = Arrays.copyOf(tabToShift, numBits); // Use a temp array for safe in-place-like shifts
+        int[] temp = Arrays.copyOf(tabToShift, numBits);
         for (int i = 0; i < numBits; i++) {
             resultat[i] = temp[(i + numShifts) % numBits];
         }
@@ -263,9 +251,7 @@ public class DESAttackJava {
         System.arraycopy(aCopier, 0, resultat, 0, nbrBit);
     }
 
-    // --- CORE DES LOGIC & ATTACK ---
-
-    public static long k16ToHex(int[][] tabK16Counts) { // C's k16enHexa
+    public static long k16ToHex(int[][] tabK16Counts) {
         long resultatK16Hex;
         int[] k16_6bitFragments = new int[8];
         int[] k16_48bitBinary = new int[48];
@@ -295,11 +281,10 @@ public class DESAttackJava {
         return resultatK16Hex;
     }
 
-    public static long exhaustiveSearchK16(long leChiffrerJuste, long[] lesChiffrerFaux) { // C's rechercheExostive
+    public static long exhaustiveSearchK16(long leChiffrerJuste, long[] lesChiffrerFaux) {
         Message juste = new Message();
         Message faux = new Message();
-        int[][] k16SboxFragmentCounts = new int[8][64]; // [Sbox_index][valeur_6bit_0_63] = count
-        // Init counts to 0
+        int[][] k16SboxFragmentCounts = new int[8][64];
         for(int i=0; i<8; i++) Arrays.fill(k16SboxFragmentCounts[i],0);
 
 
@@ -516,7 +501,7 @@ public class DESAttackJava {
         }
 
         long p2 = 0x0000000000000000L;
-        long k2 = 0x0123456789ABCDEFL; // Using a non-zero key for more standard test vector
+        long k2 = 0x0123456789ABCDEFL;
         long c2Attendu = 0x8CA64DE9C1B123A6L;
         long c2Calcule = desFunction(p2, k2);
 
@@ -529,8 +514,7 @@ public class DESAttackJava {
         long k16Hex = exhaustiveSearchK16(CHIFFRER_JUSTE, CHIFFRER_FAUX);
         System.out.printf("K16 trouvée (hex) : %012x\n", k16Hex);
 
-        if (k16Hex == 0L && !( /* Add a robust check for K16 failure here if 0 is possible for actual K16*/ false) ) {
-            // A more robust check might be to see if all max_counts in k16ToHex were very low
+        if (k16Hex == 0L && !(  false) ) {
             System.out.println("La recherche de K16 semble avoir échoué (K16 = 0 ou faible confiance).");
         }
 
