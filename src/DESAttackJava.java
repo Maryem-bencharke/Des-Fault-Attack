@@ -120,7 +120,7 @@ public class DESAttackJava {
             }
             tmp = tmp >> 4;
         }
-        // Reverse individual quartet bits as C code fills from rightmost bit of quartet first
+        // Reverse individual quartet bits 
         for (int i = 0; i < nbrHexaDigits * 4; i += 4) {
             int temp;
             temp = tabResult[i]; tabResult[i] = tabResult[i+3]; tabResult[i+3] = temp;
